@@ -11,8 +11,8 @@
  * stub ships to the browser; the handler body, and the Appwrite SDK it
  * drives, are stripped from the client bundle.
  *
- * `GET` (read, for the header) and now `POST` (onboarding) are wrapped
- * here. `PATCH` (profile editing) comes with its own step.
+ * `GET` (read, for the header), `POST` (onboarding), and `PATCH` (profile
+ * editing) are all wrapped here now.
  */
 
 import { queryOptions } from '@tanstack/react-query'
@@ -50,8 +50,8 @@ export const getPersonalAccount = createServerFn({ method: 'GET' }).handler(
 
       const execution = await functions.createExecution({
         functionId: FUNCTION_ID,
-       method: ExecutionMethod.GET,
-       xpath: '/personal-account',
+        xpath: '/personal-account',
+        method: ExecutionMethod.GET,
       })
 
       // 404 is the Function's documented "signed in, not onboarded yet"
@@ -161,4 +161,81 @@ export const createPersonalAccount = createServerFn({ method: 'POST' })
       execution.responseBody,
     )
     throw new Error('Could not create your account. Please try again.')
+  })
+
+const updatePersonalAccountInput = z.object({
+  // Included because the brief's product notes say to send the signed-in
+  // user's id with profile changes. The Function never reads identity from
+  // the body, though — see main.js, which trusts only the
+  // x-appwrite-user-id header Appwrite injects for an authenticated
+  // execution — and its PATCH schema (validation.js' updateRequest) has no
+  // matching field, so this is silently stripped server-side and has no
+  // effect on which account gets updated. That's still determined entirely
+  // by the session client below. Sent anyway rather than silently dropped.
+  userId: z.string().trim().min(1),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
+  // Nullable, not optional: this form always submits the full desired
+  // state (not a partial omit-to-keep edit), so an intentionally cleared
+  // field is sent as null, matching the Function's own clear semantics.
+  contactEmail: z.email().max(254).nullable(),
+  bio: z.string().trim().min(1).max(2000).nullable(),
+})
+
+type UpdatePersonalAccountInput = z.infer<typeof updatePersonalAccountInput>
+
+async function executeUpdate(
+  sessionSecret: string,
+  data: UpdatePersonalAccountInput,
+) {
+  try {
+    const functions = new Functions(getSessionClient(sessionSecret))
+
+    return await functions.createExecution({
+      functionId: FUNCTION_ID,
+      xpath: '/personal-account',
+      method: ExecutionMethod.PATCH,
+      body: JSON.stringify(data),
+    })
+  } catch (error) {
+    console.error('updatePersonalAccount execution failed:', error)
+    throw new Error('Could not update your profile. Please try again.')
+  }
+}
+
+/** Same error-surfacing philosophy as createPersonalAccount: real failures
+ * propagate as a thrown Error with a message safe to show as-is, rather
+ * than degrading quietly the way getPersonalAccount's read path does. */
+export const updatePersonalAccount = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => updatePersonalAccountInput.parse(input))
+  .handler(async ({ data }): Promise<PersonalAccount> => {
+    const sessionSecret = getSessionSecret()
+
+    if (!sessionSecret) {
+      throw new Error('You need to be signed in to do this.')
+    }
+
+    const execution = await executeUpdate(sessionSecret, data)
+
+    if (execution.responseStatusCode === 200) {
+      return JSON.parse(execution.responseBody) as PersonalAccount
+    }
+
+    if (execution.responseStatusCode === 400) {
+      const body = JSON.parse(execution.responseBody) as { message?: string }
+      throw new Error(body.message ?? 'Please check the form and try again.')
+    }
+
+    if (execution.responseStatusCode === 404) {
+      // No Personal Account to update. /profile is guarded the same way
+      // onboarding checks for one, so this shouldn't be reachable, but
+      // fail with a clear message rather than the generic one if it is.
+      throw new Error('No account found to update.')
+    }
+
+    console.error(
+      `updatePersonalAccount: Function returned ${execution.responseStatusCode}`,
+      execution.responseBody,
+    )
+    throw new Error('Could not update your profile. Please try again.')
   })
