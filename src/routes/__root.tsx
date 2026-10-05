@@ -1,15 +1,19 @@
-import type { QueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import {
   HeadContent,
   Link,
   Scripts,
   createRootRouteWithContext,
   useLocation,
+  useRouter,
 } from '@tanstack/react-router'
 
-import { currentUserQueryOptions } from '../lib/appwrite/current-user'
-import { personalAccountQueryOptions } from '../lib/appwrite/personal-account'
 import appCss from '../styles.css?url'
+import { currentUserQueryOptions } from '../lib/appwrite/current-user'
+import { logout } from '../lib/appwrite/logout'
+import { personalAccountQueryOptions } from '../lib/appwrite/personal-account'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -43,7 +47,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-
       <body>
         <Header />
         {children}
@@ -54,28 +57,56 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function Header() {
-  const location = useLocation()
   const { currentUser, personalAccount } = Route.useRouteContext()
+  const location = useLocation()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   if (!currentUser) {
     return (
       <header>
-        <Link
-          to="/sign-in"
-          search={{ redirect: location.pathname }}
-        >
+        <Link to="/sign-in" search={{ redirect: location.pathname }}>
           Sign in
         </Link>
       </header>
     )
   }
 
+  async function handleLogout() {
+    if (loggingOut) {
+      return
+    }
+
+    setLoggingOut(true)
+
+    try {
+      await logout()
+
+      await queryClient.invalidateQueries({
+        queryKey: ['currentUser'],
+      })
+
+      await queryClient.invalidateQueries({
+        queryKey: ['personalAccount'],
+      })
+
+      await router.navigate({ to: '/' })
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
   return (
     <header>
       {personalAccount && <span>{personalAccount.firstName}</span>}
 
-      <button type="button" disabled>
-        Log out
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={loggingOut}
+      >
+        {loggingOut ? 'Logging out…' : 'Log out'}
       </button>
     </header>
   )
