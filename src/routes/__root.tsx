@@ -1,8 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query'
 import {
   HeadContent,
+  Link,
   Scripts,
   createRootRouteWithContext,
+  useLocation,
 } from '@tanstack/react-router'
 
 import { currentUserQueryOptions } from '../lib/appwrite/current-user'
@@ -52,12 +54,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function Header() {
+  const location = useLocation()
   const { currentUser, personalAccount } = Route.useRouteContext()
 
   if (!currentUser) {
     return (
       <header>
-        <span>Sign in</span>
+        <Link
+          to="/sign-in"
+          search={{ redirect: location.pathname }}
+        >
+          Sign in
+        </Link>
       </header>
     )
   }
