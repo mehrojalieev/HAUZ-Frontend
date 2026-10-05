@@ -1,38 +1,411 @@
-/* Deliberately minimal. Styling is not part of this task. */
+/*
+ * HAUZ — design tokens and shared styling.
+ *
+ * Deliberate choices, not defaults: a deep tilework teal as the single
+ * primary accent (grounded in Central Asian architecture — the Registan,
+ * Shah-i-Zinda — rather than a generic SaaS blue), a warm paper background,
+ * and a muted ochre reserved for selected states. No gradients, no card
+ * shadows stamped on everything uniformly, no decorative motion. Typeface
+ * is the existing system-font stack — no new external dependency — set
+ * with a deliberate scale instead.
+ */
 
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
+  color-scheme: light;
+
+  /* Color */
+  --color-bg: #faf8f3;
+  --color-surface: #ffffff;
+  --color-border: #e3ddd1;
+  --color-ink: #1e2824;
+  --color-muted: #6e675b;
+  --color-primary: #0f5c56;
+  --color-primary-hover: #0b4742;
+  --color-primary-ink: #ffffff;
+  --color-accent: #c1872e;
+  --color-accent-bg: #faf1df;
+  --color-error: #b3261e;
+  --color-error-bg: #fbeae9;
+  --color-success: #2f6b4f;
+  --color-success-bg: #eaf3ec;
+
+  /* Type */
+  font-family:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  padding: 1.5rem;
-  max-width: 44rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 h1 {
-  font-size: 1.5rem;
+  margin: 0 0 0.375rem;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
-label {
+p {
+  margin: 0 0 1rem;
+  color: var(--color-ink);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.brand {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9375rem;
+}
+
+.header-auth a {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.header-auth a:hover {
+  text-decoration: underline;
+}
+
+.header-name {
+  color: var(--color-muted);
+}
+
+/* ---------- Page layout ---------- */
+
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 26rem;
+  height: fit-content;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  box-shadow: 0 1px 2px rgba(30, 40, 36, 0.04);
+}
+
+.card-subtitle {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Wide card for the profile form, which carries more fields */
+.card--wide {
+  max-width: 32rem;
+}
+
+/* ---------- Forms ---------- */
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  margin-bottom: 1.125rem;
+}
+
+.field label {
   display: block;
-  margin-top: 0.75rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink);
 }
 
 input,
-select,
 textarea {
   display: block;
   width: 100%;
-  max-width: 24rem;
-  padding: 0.4rem;
+  padding: 0.625rem 0.75rem;
   font: inherit;
+  font-size: 1rem;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease;
 }
 
+textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+input:hover,
+textarea:hover {
+  border-color: var(--color-muted);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+input:disabled,
+textarea:disabled {
+  background: var(--color-bg);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.field-hint {
+  margin-top: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+/* ---------- Buttons ---------- */
+
 button {
-  margin-top: 1rem;
-  padding: 0.4rem 0.9rem;
   font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.6875rem 1.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-muted);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-row .btn {
+  margin-top: 0;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  align-self: flex-start;
+}
+
+.link-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.link-button:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.link-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.link-actions .link-button {
+  margin-top: 0;
+}
+
+/* ---------- Role selection ---------- */
+
+.role-options {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.role-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.role-option:hover {
+  border-color: var(--color-muted);
+}
+
+.role-option input[type='radio'] {
+  width: auto;
+  margin: 0;
+}
+
+.role-option span {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.role-option--selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+/* ---------- Messages ---------- */
+
+.form-error {
+  margin-top: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-radius: 0.5rem;
+}
+
+.form-success {
+  margin-top: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-radius: 0.5rem;
+}
+
+/* ---------- Home ---------- */
+
+.home-hero {
+  width: 100%;
+  max-width: 30rem;
+  text-align: center;
+  padding-top: 2rem;
+}
+
+.home-hero .brand {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  pointer-events: none;
+}
+
+.home-hero p {
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+  margin-bottom: 1.75rem;
+}
+
+.home-hero .btn {
+  width: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  .site-header {
+    padding: 0.875rem 1rem;
+  }
+
+  main {
+    padding: 1.5rem 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .role-options {
+    flex-direction: column;
+  }
+
+  .header-auth {
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
 }

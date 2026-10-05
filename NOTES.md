@@ -26,3 +26,9 @@ The brief says the profile form should send the signed-in user's id with changes
 ## Known audit fix
 
 Current-user loading was hardened: the handler's try/catch now also covers reading the session cookie, not only the Appwrite call, so any in-process failure clears the cookie and resolves to signed-out. Separately, a client-side server-function/RPC rejection is converted to the same signed-out result via `.catch(() => null)` on the query function, avoiding an unhandled loading error. This cannot clear the server-side cookie in that specific case, since the server never received the request; the cookie resolves correctly the next time a request reaches the server. This is a robustness refinement, not a security vulnerability.
+
+## Three agent mistakes caught
+
+1. The Appwrite Function execution call initially used the wrong request shape (`method`/`path`). Typechecking exposed it; corrected to the SDK's actual `ExecutionMethod` + `xpath` shape. Commit: `0d5dc5a`.
+2. The sign-in verification flow initially treated any failure after a successful OTP verification as if the OTP itself had failed, which could leave the person on the code screen holding an already-consumed single-use code. Split into separate error handling for OTP verification versus the post-verification cache/navigation steps. Commit: _to be filled in after this change is committed._
+3. Profile save initially invalidated the Personal Account query but didn't refresh route context immediately, which could leave stale profile data visible until another navigation. Fixed with `router.invalidate()` and remounting the form keyed on `updatedAt`. Commit: _to be filled in after this change is committed._

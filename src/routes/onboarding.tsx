@@ -41,7 +41,11 @@ function OnboardingPage() {
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [role, setRole] = useState<Role>('property_owner')
+  // No default. A role must be explicitly chosen — defaulting to either
+  // option silently would let someone submit a role they never actually
+  // picked, and it is immutable afterward (see note below), so there is no
+  // "change it later" safety net if that happened.
+  const [role, setRole] = useState<Role | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -56,17 +60,27 @@ function OnboardingPage() {
       return
     }
 
+    // Defensive fallback: the submit button is already disabled while role
+    // is unset (see below), so this should not be reachable in normal use.
+    if (!role) {
+      setError('Davom etish uchun rolni tanlang.')
+      return
+    }
+
     setError(null)
     setPending(true)
 
     try {
       await createPersonalAccount({ data: { firstName, lastName, role } })
 
-      await queryClient.invalidateQueries({ queryKey: ['personalAccount'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['personalAccount'],
+        refetchType: 'all',
+      })
 
       await router.navigate({ href: safeRedirectTarget(redirectParam) })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      setError(err instanceof Error ? err.message : 'Xatolik yuz berdi.')
     } finally {
       setPending(false)
     }
@@ -74,65 +88,98 @@ function OnboardingPage() {
 
   return (
     <main>
-      <h1>Set up your account</h1>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="firstName">First name</label>
-        <input
-          id="firstName"
-          type="text"
-          autoComplete="given-name"
-          required
-          value={firstName}
-          onChange={(event) => setFirstName(event.target.value)}
-          disabled={pending}
-        />
-
-        <label htmlFor="lastName">Last name</label>
-        <input
-          id="lastName"
-          type="text"
-          autoComplete="family-name"
-          required
-          value={lastName}
-          onChange={(event) => setLastName(event.target.value)}
-          disabled={pending}
-        />
-
-        {/*
-         * Role has no edit affordance anywhere by design: the Function's
-         * update schema (validation.js) has no `role` field at all, so it
-         * can't be changed after creation. This form is the only place it's
-         * ever set.
-         */}
-        <fieldset disabled={pending}>
-          <legend>Role</legend>
-          <label>
+      <div className="card">
+        <h1>Hisobingizni yarating</h1>
+        <p className="card-subtitle">Ism, familiya va rolingizni kiriting.</p>
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="firstName">Ism</label>
             <input
-              type="radio"
-              name="role"
-              value="property_owner"
-              checked={role === 'property_owner'}
-              onChange={() => setRole('property_owner')}
+              id="firstName"
+              type="text"
+              autoComplete="given-name"
+              required
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              disabled={pending}
             />
-            Property owner
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="role"
-              value="realtor"
-              checked={role === 'realtor'}
-              onChange={() => setRole('realtor')}
-            />
-            Realtor
-          </label>
-        </fieldset>
+          </div>
 
-        <button type="submit" disabled={pending}>
-          {pending ? 'Creating…' : 'Continue'}
-        </button>
-      </form>
-      {error && <p role="alert">{error}</p>}
+          <div className="field">
+            <label htmlFor="lastName">Familiya</label>
+            <input
+              id="lastName"
+              type="text"
+              autoComplete="family-name"
+              required
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              disabled={pending}
+            />
+          </div>
+
+          {/*
+           * Role has no edit affordance anywhere by design: the Function's
+           * update schema (validation.js) has no `role` field at all, so it
+           * can't be changed after creation. This form is the only place it
+           * is ever set.
+           */}
+          <div className="field">
+            <label>Rol</label>
+            <div className="role-options">
+              <label
+                className={
+                  role === 'property_owner'
+                    ? 'role-option role-option--selected'
+                    : 'role-option'
+                }
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value="property_owner"
+                  checked={role === 'property_owner'}
+                  onChange={() => setRole('property_owner')}
+                  disabled={pending}
+                  required
+                />
+                <span>Mulk egasi</span>
+              </label>
+              <label
+                className={
+                  role === 'realtor'
+                    ? 'role-option role-option--selected'
+                    : 'role-option'
+                }
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value="realtor"
+                  checked={role === 'realtor'}
+                  onChange={() => setRole('realtor')}
+                  disabled={pending}
+                  required
+                />
+                <span>Rieltor</span>
+              </label>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={pending || !role}
+          >
+            {pending ? 'Yuklanmoqda…' : 'Davom etish'}
+          </button>
+        </form>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
     </main>
   )
 }

@@ -111,7 +111,7 @@ async function executeCreate(
     })
   } catch (error) {
     console.error('createPersonalAccount execution failed:', error)
-    throw new Error('Could not create your account. Please try again.')
+    throw new Error('Hisobni yaratib boʻlmadi. Qaytadan urinib koʻring.')
   }
 }
 
@@ -131,7 +131,7 @@ export const createPersonalAccount = createServerFn({ method: 'POST' })
       // The Function itself is still the real enforcement (401 with no
       // x-appwrite-user-id, since execute access is "users"). This just
       // fails fast with a clearer message instead of making a doomed call.
-      throw new Error('You need to be signed in to do this.')
+      throw new Error('Buni bajarish uchun tizimga kiring.')
     }
 
     const execution = await executeCreate(sessionSecret, data)
@@ -148,19 +148,20 @@ export const createPersonalAccount = createServerFn({ method: 'POST' })
 
     if (execution.responseStatusCode === 409) {
       // A genuine conflict (exists with a different role), not a retry.
-      // The Function's own message already names the existing role, and is
-      // written to be shown to the person, not just logged.
+      // The Function's own message names the existing role, but it's
+      // written in English for its own API consumers, not this UI — logged
+      // for diagnostics, not shown. The person gets a plain Uzbek message
+      // instead of the Function's raw text.
       const body = JSON.parse(execution.responseBody) as { message?: string }
-      throw new Error(
-        body.message ?? 'This account already exists with a different role.',
-      )
+      console.error('createPersonalAccount conflict:', body.message)
+      throw new Error('Bu hisob allaqachon boshqa rol bilan yaratilgan.')
     }
 
     console.error(
       `createPersonalAccount: Function returned ${execution.responseStatusCode}`,
       execution.responseBody,
     )
-    throw new Error('Could not create your account. Please try again.')
+    throw new Error('Hisobni yaratib boʻlmadi. Qaytadan urinib koʻring.')
   })
 
 const updatePersonalAccountInput = z.object({
@@ -199,7 +200,7 @@ async function executeUpdate(
     })
   } catch (error) {
     console.error('updatePersonalAccount execution failed:', error)
-    throw new Error('Could not update your profile. Please try again.')
+    throw new Error('Profilni yangilab boʻlmadi. Qaytadan urinib koʻring.')
   }
 }
 
@@ -212,7 +213,7 @@ export const updatePersonalAccount = createServerFn({ method: 'POST' })
     const sessionSecret = getSessionSecret()
 
     if (!sessionSecret) {
-      throw new Error('You need to be signed in to do this.')
+      throw new Error('Buni bajarish uchun tizimga kiring.')
     }
 
     const execution = await executeUpdate(sessionSecret, data)
@@ -222,20 +223,23 @@ export const updatePersonalAccount = createServerFn({ method: 'POST' })
     }
 
     if (execution.responseStatusCode === 400) {
+      // The Function's validation message is written for its own API
+      // consumers, in English — logged for diagnostics, not shown as-is.
       const body = JSON.parse(execution.responseBody) as { message?: string }
-      throw new Error(body.message ?? 'Please check the form and try again.')
+      console.error('updatePersonalAccount invalid request:', body.message)
+      throw new Error('Formani tekshirib, qaytadan urinib koʻring.')
     }
 
     if (execution.responseStatusCode === 404) {
       // No Personal Account to update. /profile is guarded the same way
       // onboarding checks for one, so this shouldn't be reachable, but
       // fail with a clear message rather than the generic one if it is.
-      throw new Error('No account found to update.')
+      throw new Error('Yangilash uchun hisob topilmadi.')
     }
 
     console.error(
       `updatePersonalAccount: Function returned ${execution.responseStatusCode}`,
       execution.responseBody,
     )
-    throw new Error('Could not update your profile. Please try again.')
+    throw new Error('Profilni yangilab boʻlmadi. Qaytadan urinib koʻring.')
   })

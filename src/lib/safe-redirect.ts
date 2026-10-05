@@ -39,5 +39,14 @@ export function safeRedirectTarget(
     return fallback
   }
 
+  // Auth-flow pages are never a real destination. Sending someone back to
+  // /onboarding after onboarding (or to /sign-in after signing in) would
+  // just bounce them through that route's own guard again — for
+  // /onboarding, an endless redirect to itself.
+  const pathname = redirect.split(/[?#]/)[0]
+  if (pathname === '/sign-in' || pathname === '/onboarding') {
+    return fallback
+  }
+
   return redirect
 }
