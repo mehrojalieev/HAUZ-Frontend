@@ -62,5 +62,5 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
 export const currentUserQueryOptions = () =>
   queryOptions({
     queryKey: ['currentUser'] as const,
-    queryFn: () => getCurrentUser(),
+    queryFn: () => getCurrentUser().catch(() => null)
   })
