@@ -5,8 +5,9 @@ import {
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 
-import appCss from '../styles.css?url'
 import { currentUserQueryOptions } from '../lib/appwrite/current-user'
+import { personalAccountQueryOptions } from '../lib/appwrite/personal-account'
+import appCss from '../styles.css?url'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -14,16 +15,14 @@ export interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    // Resolved during SSR, seeded into the query cache, and dehydrated to
-    // the client by the existing setupRouterSsrQueryIntegration wiring in
-    // router.tsx — so the header (built in a later step) reads this from
-    // context with no extra client-side fetch and no loading flash.
-    const currentUser = await context.queryClient.ensureQueryData(
-      currentUserQueryOptions(),
-    )
+    const [currentUser, personalAccount] = await Promise.all([
+      context.queryClient.ensureQueryData(currentUserQueryOptions()),
+      context.queryClient.ensureQueryData(personalAccountQueryOptions()),
+    ])
 
-    return { currentUser }
+    return { currentUser, personalAccount }
   },
+
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -32,6 +31,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
+
   shellComponent: RootDocument,
 })
 
@@ -41,11 +41,34 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
+
       <body>
-        {/* The site header belongs here. See TASK.md. */}
+        <Header />
         {children}
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function Header() {
+  const { currentUser, personalAccount } = Route.useRouteContext()
+
+  if (!currentUser) {
+    return (
+      <header>
+        <span>Sign in</span>
+      </header>
+    )
+  }
+
+  return (
+    <header>
+      {personalAccount && <span>{personalAccount.firstName}</span>}
+
+      <button type="button" disabled>
+        Log out
+      </button>
+    </header>
   )
 }
