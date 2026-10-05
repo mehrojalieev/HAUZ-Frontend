@@ -2,17 +2,13 @@ import { type FormEvent, useState } from 'react'
 
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { z } from 'zod'
 
+import { personalAccountQueryOptions } from '../lib/appwrite/personal-account'
 import { requestEmailCode, verifyEmailCode } from '../lib/appwrite/sign-in'
-import { safeRedirectTarget } from '../lib/safe-redirect'
-
-const searchSchema = z.object({
-  redirect: z.string().optional(),
-})
+import { redirectSearchSchema, safeRedirectTarget } from '../lib/safe-redirect'
 
 export const Route = createFileRoute('/sign-in')({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search) => redirectSearchSchema.parse(search),
   component: SignInPage,
 })
 
@@ -49,6 +45,8 @@ function SignInPage() {
   async function handleVerifyCode(event: FormEvent) {
     event.preventDefault()
 
+    // Shouldn't be reachable (this step only renders after step one sets
+    // userId), but keeps the call well-typed without a non-null assertion.
     if (!userId) {
       setStep('email')
       return
@@ -58,21 +56,35 @@ function SignInPage() {
     setPending(true)
 
     try {
-      await verifyEmailCode({
-        data: { userId, code },
-      })
+      await verifyEmailCode({ data: { userId, code } })
 
-      await queryClient.invalidateQueries({
-        queryKey: ['currentUser'],
-      })
+      // The root route's beforeLoad re-runs on this navigation, but its
+      // ensureQueryData calls would otherwise serve the still-fresh
+      // "signed out" cache entries (60s staleTime, set in router.tsx)
+      // instead of refetching. Invalidate both so the header — and
+      // anything else reading them — is correct immediately, not after the
+      // cache happens to expire.
+      await queryClient.invalidateQueries({ queryKey: ['currentUser'] })
+      await queryClient.invalidateQueries({ queryKey: ['personalAccount'] })
 
-      await queryClient.invalidateQueries({
-        queryKey: ['personalAccount'],
-      })
+      // Which page comes next depends on whether this person already has a
+      // Personal Account. ensureQueryData reads it fresh here (it was just
+      // invalidated above), so this reflects the account as of right now,
+      // not a stale pre-sign-in value.
+      const personalAccount = await queryClient.ensureQueryData(
+        personalAccountQueryOptions(),
+      )
 
-      await router.navigate({
-        href: safeRedirectTarget(redirect),
-      })
+      if (personalAccount) {
+        await router.navigate({ href: safeRedirectTarget(redirect) })
+      } else {
+        // Carry the original destination through onboarding rather than
+        // replacing it — onboarding is a detour, not a new destination.
+        await router.navigate({
+          to: '/onboarding',
+          search: { redirect },
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -84,10 +96,8 @@ function SignInPage() {
     return (
       <main>
         <h1>Sign in</h1>
-
         <form onSubmit={handleRequestCode}>
           <label htmlFor="email">Email</label>
-
           <input
             id="email"
             type="email"
@@ -97,12 +107,10 @@ function SignInPage() {
             onChange={(event) => setEmail(event.target.value)}
             disabled={pending}
           />
-
           <button type="submit" disabled={pending}>
             {pending ? 'Sending…' : 'Send code'}
           </button>
         </form>
-
         {error && <p role="alert">{error}</p>}
       </main>
     )
@@ -111,12 +119,9 @@ function SignInPage() {
   return (
     <main>
       <h1>Enter your code</h1>
-
       <p>We sent a code to {email}.</p>
-
       <form onSubmit={handleVerifyCode}>
         <label htmlFor="code">Code</label>
-
         <input
           id="code"
           type="text"
@@ -127,12 +132,10 @@ function SignInPage() {
           onChange={(event) => setCode(event.target.value)}
           disabled={pending}
         />
-
         <button type="submit" disabled={pending}>
           {pending ? 'Verifying…' : 'Continue'}
         </button>
       </form>
-
       {error && <p role="alert">{error}</p>}
     </main>
   )
