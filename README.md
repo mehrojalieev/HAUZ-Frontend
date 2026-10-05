@@ -1,6 +1,6 @@
-# HAUZ frontend take-home starter
+# HAUZ frontend take-home
 
-A blank TanStack Start app plus the Appwrite Function you will call from it.
+A TanStack Start app plus the Appwrite Function you will call from it.
 Read `TASK.md` for what to build. This file is only about getting it running.
 
 ## What you need
@@ -80,21 +80,40 @@ http://localhost:3000
 
 ## What is in here
 
+The app implements email-code sign-in, SSR-resolved current-user/session
+state (correct on first paint, including after a hard refresh), Personal
+Account onboarding, profile view/edit, and logout. Profile data goes only
+through the `personal-account` Appwrite Function; the browser never talks to
+Appwrite directly.
+
 ```
-src/                          the app you are building; it is empty on purpose
-  router.tsx                  router setup
-  routes/__root.tsx           the document shell
-  routes/index.tsx            placeholder home page
+src/
+  router.tsx                   router and query client setup
+  routes/__root.tsx             document shell, session bootstrap, header
+  routes/index.tsx              home page
+  routes/sign-in.tsx            email-code sign-in (request + verify)
+  routes/onboarding.tsx         Personal Account creation
+  routes/profile.tsx            Personal Account view/edit
+  lib/appwrite/                 server-side Appwrite clients, session cookie,
+                                 and the server functions each route calls
 functions/personal-account/   the Function, already written
 appwrite.config.json          database, table and Function definitions
 ```
 
+Main routes:
+
+- `/` — home
+- `/sign-in` — email-code sign-in
+- `/onboarding` — first sign-in; creates the Personal Account
+- `/profile` — view and edit the Personal Account (signed-in only)
+
 Other scripts:
 
 ```bash
-npm run build       production build
-npm run typecheck   tsc --noEmit
-npm run appwrite    the Appwrite CLI, scoped to this project's config
+npm run build             production build
+npm run typecheck         tsc --noEmit
+npm run generate-routes   regenerate src/routeTree.gen.ts from src/routes
+npm run appwrite          the Appwrite CLI, scoped to this project's config
 ```
 
 ## The Function
